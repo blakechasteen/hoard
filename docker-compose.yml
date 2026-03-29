@@ -1,0 +1,32 @@
+services:
+  db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: hoard
+      POSTGRES_USER: hoard
+      POSTGRES_PASSWORD: hoard
+    volumes:
+      - hoard_pgdata:/var/lib/postgresql/data
+    ports:
+      - "5433:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U hoard"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+
+  api:
+    build: ./backend
+    ports:
+      - "8080:8080"
+    environment:
+      HOARD_DATABASE_URL: postgresql+asyncpg://hoard:hoard@db:5432/hoard
+      HOARD_SECRET_KEY: ${HOARD_SECRET_KEY:-change-me-in-production}
+      PRICECHARTING_API_KEY: ${PRICECHARTING_API_KEY:-}
+      TCGPLAYER_API_KEY: ${TCGPLAYER_API_KEY:-}
+    depends_on:
+      db:
+        condition: service_healthy
+
+volumes:
+  hoard_pgdata:
